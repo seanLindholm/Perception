@@ -78,7 +78,7 @@ class ClassifyImages:
     def __loadPretrainedModel(self):
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
-        self.model,self.categoryDict = pl.load(open("model.p","rb"))
+        self.model,self.categoryDict = pl.load(open("./model_save/model.p","rb"))
         pass
 
     def train_model(self,split=.3): 
@@ -93,7 +93,7 @@ class ClassifyImages:
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
 
         # Save the model
-        pl.dump([self.model,self.categoryDict], open("model.p","wb"))
+        pl.dump([self.model,self.categoryDict], open("./model_save/model.p","wb"))
    
     def __getimage(self,path):
         # read the image using opencv
