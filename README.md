@@ -2,7 +2,9 @@
 This repo holds the answer to the final assignment in the course 31392 (Perception for autonomous systems)
 
 # Data
-The folder Images inside src->ImageTracking holds all the training images, some are scrapped from google but most of them are taken by handheld devises in everyday setting.
+The folder Images inside src->ImageTracking holds all the training images, some are scrapped from google but most of them are taken by handheld devices in everyday setting.
+The images which is used as input are all handled inside the script (ClassifyImage) where it reads it using cv2.imread and resize it down to an 80x80 grayscale image.
+
 
 # Add data
 If you wish to add data then you will need to add a line to *dataset.csv* inside src->ImageTracking, here you will need to specify the path to the image, and then the name category alongside a numerical label.
