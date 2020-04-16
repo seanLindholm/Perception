@@ -24,6 +24,7 @@ imagepath,category,label
 ./images/BOG22.jpg,book,1
 ./images/BOG23.jpg,book,1
 ./images/BOG24.jpg,book,1
+./images/BOG25.jpg,book,1
 ./images/BOG26.jpg,book,1
 ./images/BOG27.jpg,book,1
 ./images/BOG28.jpg,book,1
@@ -40,6 +41,11 @@ imagepath,category,label
 ./images/BOG39.jpg,book,1
 ./images/BOG40.jpg,book,1
 ./images/BOG41.jpg,book,1
+./images/BOG42.jpg,book,1
+./images/BOG43.jpg,book,1
+./images/BOG44.jpg,book,1
+./images/BOG45.jpg,book,1
+./images/BOG46.jpg,book,1
 ./images/krus1.jpg,mug,0
 ./images/krus2.jpg,mug,0
 ./images/krus3.jpg,mug,0
@@ -50,12 +56,22 @@ imagepath,category,label
 ./images/krus8.jpg,mug,0
 ./images/krus9.jpg,mug,0
 ./images/krus10.jpg,mug,0
+./images/krus11.jpg,mug,0
+./images/krus12.jpg,mug,0
+./images/krus13.jpg,mug,0
 ./images/box1.jpg,box,2
+./images/box2.jpg,box,2
 ./images/box3.jpg,box,2
 ./images/box4.jpg,box,2
 ./images/box5.jpg,box,2
 ./images/box6.jpg,box,2
 ./images/box7.jpg,box,2
+./images/box8.jpg,box,2
+./images/box9.jpg,box,2
+./images/box10.jpg,box,2
+./images/box11.jpg,box,2
+./images/box12.jpg,box,2
+
 
 
 
