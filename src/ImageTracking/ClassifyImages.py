@@ -115,6 +115,10 @@ class ClassifyImages:
         # First we flatten the image
         flatten = img.flatten()
         # Some other features
+        # Right now there is no extra feautres, but so far it seems like the
+        # biggest problem is distinguishing boxes from book.
+        # One feature idea might be to add edge detection, to try and find 
+        # text on the front page of the books.
         more_features = []
         # horizontal stack them
         features = np.hstack((flatten,more_features))
