@@ -135,7 +135,6 @@ if __name__ == "__main__":
     t.createTrainingData()
     print(t.dataset.shape)
     print(t.target.shape)
-    print(t.target)
     t.train_model()
 
     img = cv2.imread("./images/BOG25.jpg")
