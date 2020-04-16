@@ -11,3 +11,6 @@ If you wish to add data then you will need to add a line to *dataset.csv* inside
 
 # The model
 The model is a Support Vector Machine (https://en.wikipedia.org/wiki/Support-vector_machine), used from the sklearn python library.
+
+# Training on data
+If you wish to retrain the model a .log file is created after training, in here you can see if some of the traininig data could not be read, and how many training data was created.
