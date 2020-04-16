@@ -4,6 +4,7 @@
 # since this is the method covered doing the class 313932.
 # Good site for building it all https://rpubs.com/Sharon_1684/454441
 import pandas as pd
+import pickle as pl
 import numpy as np
 import sklearn as sk
 from sklearn import datasets
@@ -18,8 +19,8 @@ import cv2
 class TrackObjects:
 
     def __init__(self,dataset='dataset.csv',load_model = False):
-        # TODO: find a way to save the trained model, such that it is possible to call this class
-        # And get a pre trained model, such that we don't need to retrain it, all the time
+        if load_model:
+            self.__loadPretrainedModel()
         self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
 
     def createTrainingData(self):
@@ -55,17 +56,30 @@ class TrackObjects:
         logging.info("The creation of the training data ran, with {} error(s), and has generated {} number(s) of training data".format(error_count,data_count))
         
 
-    def find_objects(self,input):
-        # TODO:
+    def classify_img(self,input_img):
         # This method takes an image as input and return the predicted class.
         # This should be used in conjunction with the object tracking to identify
         # What object is on the track.
-        pass
+
+        # The input image should be a BGR image from cv2.imread in order to function
+        # TODO: Make a check and inform the user that the format of the image is incorrect
+        if type(input_img) is not np.ndarray:
+            print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
+                  "and input that, in its original version")
+            return "ImageIsOfWrongType"
+        img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
+
+        # resize the image to 80 x 80
+        img = cv2.resize(img,(80,80))
+        test = self.__makefeatures(img).reshape(1,-1)
+        classification = self.categoryDict[self.model.predict(test)[0]]
+        return classification
+
 
     def __loadPretrainedModel(self):
-        # TODO:
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
+        self.model,self.categoryDict = pl.load(open("model.p","rb"))
         pass
 
     def train_model(self,split=.25): 
@@ -78,6 +92,9 @@ class TrackObjects:
         y_pred = self.model.predict(X_test)
         print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
+
+        # Save the model
+        pl.dump([self.model,self.categoryDict], open("model.p","wb"))
    
     def __getimage(self,path):
         # read the image using opencv
@@ -107,11 +124,26 @@ class TrackObjects:
         # TODO make this, i think it could be nice
 
         return features
+
+# Debugging 
 if __name__ == "__main__":
-    t = TrackObjects()
-    t.createTrainingData()
-    print(t.dataset.shape)
-    print(t.target.shape)
-    print(t.target)
-    print(t.categoryDict)
-    t.train_model()
+    # This is for testing the training aspect
+    # t = TrackObjects()
+    # t.createTrainingData()
+    # print(t.dataset.shape)
+    # print(t.target.shape)
+    # print(t.target)
+    # print(t.categoryDict)
+    # t.train_model()
+
+    # img = cv2.imread("./images/krus7.jpg")
+    # t.classify_img(img)
+
+    
+    # This can be used to load old model
+    t2 = TrackObjects(load_model=True)
+
+    # This is for testing the model
+    img = cv2.imread("./images/box6.jpg")
+    print(t2.classify_img(img))
+    
