@@ -16,7 +16,7 @@ import cv2
 
 
 
-class TrackObjects:
+class ClassifyImages:
 
     def __init__(self,dataset='dataset.csv',load_model = False):
         if load_model:
@@ -62,7 +62,6 @@ class TrackObjects:
         # What object is on the track.
 
         # The input image should be a BGR image from cv2.imread in order to function
-        # TODO: Make a check and inform the user that the format of the image is incorrect
         if type(input_img) is not np.ndarray:
             print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
                   "and input that, in its original version")
@@ -82,7 +81,7 @@ class TrackObjects:
         self.model,self.categoryDict = pl.load(open("model.p","rb"))
         pass
 
-    def train_model(self,split=.25): 
+    def train_model(self,split=.3): 
         # Here we train the model, with our training data.
         # Next we would like to save the model, such that we don't have to retrain everytime we 
         # Need to access the model.
@@ -128,22 +127,21 @@ class TrackObjects:
 # Debugging 
 if __name__ == "__main__":
     # This is for testing the training aspect
-    # t = TrackObjects()
-    # t.createTrainingData()
-    # print(t.dataset.shape)
-    # print(t.target.shape)
-    # print(t.target)
-    # print(t.categoryDict)
-    # t.train_model()
+    t = ClassifyImages()
+    t.createTrainingData()
+    print(t.dataset.shape)
+    print(t.target.shape)
+    print(t.target)
+    t.train_model()
 
-    # img = cv2.imread("./images/krus7.jpg")
-    # t.classify_img(img)
+    img = cv2.imread("./images/BOG25.jpg")
+    print("classification: ",t.classify_img(img))
 
     
     # This can be used to load old model
-    t2 = TrackObjects(load_model=True)
+    t2 = ClassifyImages(load_model=True)
 
     # This is for testing the model
-    img = cv2.imread("./images/box6.jpg")
-    print(t2.classify_img(img))
+    img = cv2.imread("./images/krus10.jpg")
+    print("classification: ", t2.classify_img(img))
     
