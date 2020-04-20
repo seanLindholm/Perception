@@ -131,20 +131,20 @@ class ClassifyImages:
 # Debugging 
 if __name__ == "__main__":
     # This is for testing the training aspect
-    t = ClassifyImages()
-    t.createTrainingData()
-    print(t.dataset.shape)
-    print(t.target.shape)
-    t.train_model()
+    # t = ClassifyImages()
+    # t.createTrainingData()
+    # print(t.dataset.shape)
+    # print(t.target.shape)
+    # t.train_model()
 
-    img = cv2.imread("./images/BOG25.jpg")
-    print("classification: ",t.classify_img(img))
+    # img = cv2.imread("./images/book_00004.jpg")
+    # print("classification: ",t.classify_img(img))
 
     
     # This can be used to load old model
     t2 = ClassifyImages(load_model=True)
 
     # This is for testing the model
-    img = cv2.imread("./images/krus10.jpg")
+    img = cv2.imread("./images/cup_00104.jpg")
     print("classification: ", t2.classify_img(img))
     
