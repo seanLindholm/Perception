@@ -7,21 +7,31 @@ import pandas as pd
 import pickle as pl
 import numpy as np
 import sklearn as sk
+import threading
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 import logging
+import time
 import cv2
 
 
 
 class ClassifyImages:
 
-    def __init__(self,dataset='dataset.csv',load_model = False):
+    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model = False):
         if load_model:
             self.__loadPretrainedModel()
         self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
+        self.__numberOfThreads = num_of_threads
+
+    def startAndExecuteThreadWork(self,thread_list):
+        for t in thread_list:
+            t.start()
+
+        for t in thread_list:
+            t.join()
 
     def createTrainingData(self):
         # This function should loop over each image in the dataset and convert
@@ -35,26 +45,44 @@ class ClassifyImages:
                             format='%(asctime)s %(levelname)-8s %(message)s',
                             datefmt='%d-%m-%Y %H:%M:%S')
         logging.info("Strating to generate training data")
-        error_count = data_count = 0
+        self.__error_count = self.__data_count = 0
         self.target = []
         self.dataset = []
-        categoryname = []
+        self.categoryname = []
+        
+        thread_list = []
+        start = time.time()
         for path,cat,label in zip(self.dataframe["imagepath"],self.dataframe["category"],self.dataframe["label"]):
+           
+           thread_list.append(threading.Thread(target=self.extractInfo,args=(path,cat,label,logging,)))
+
+           if len(thread_list) == self.__numberOfThreads:
+                self.startAndExecuteThreadWork(thread_list)
+                thread_list = []
+           
+
+           #self.extractInfo(path,cat,label,logging)
+        self.startAndExecuteThreadWork(thread_list)
+
+        end = time.time()
+        print("Dataset created with {} thread(s) after {} seconds".format(self.__numberOfThreads,(end-start)))
+        self.dataset = np.array(self.dataset)
+        self.categoryDict = dict(zip(self.target,self.categoryname))
+        self.target = np.array(self.target)
+        logging.info("The creation of the training data ran, with {} error(s), and has generated {} number(s) of training data".format(self.__error_count,self.__data_count))
+        
+    
+    def extractInfo(self,path,cat,label,logging):
             # Get image from the path in the dataset.csv
             img,res = self.__getimage(path)
             if res == 0:
                 logging.error("The image on path {} with category {} could not be read".format(path,cat))
-                error_count += 1
+                self.__error_count += 1
             else:
                 self.dataset.append(self.__makefeatures(img))
-                data_count += 1
+                self.__data_count += 1
                 self.target.append(label)
-                categoryname.append(cat)
-        self.dataset = np.array(self.dataset)
-        self.categoryDict = dict(zip(self.target,categoryname))
-        self.target = np.array(self.target)
-        logging.info("The creation of the training data ran, with {} error(s), and has generated {} number(s) of training data".format(error_count,data_count))
-        
+                self.categoryname.append(cat)
 
     def classify_img(self,input_img):
         # This method takes an image as input and return the predicted class.
@@ -78,7 +106,7 @@ class ClassifyImages:
     def __loadPretrainedModel(self):
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
-        self.model,self.categoryDict = pl.load(open("./model_save/model.p","rb"))
+        self.model,self.categoryDict,self.dataset,self.target = pl.load(open("./model_save/model.p","rb"))
         pass
 
     def train_model(self,split=.3): 
@@ -93,7 +121,7 @@ class ClassifyImages:
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
 
         # Save the model
-        pl.dump([self.model,self.categoryDict], open("./model_save/model.p","wb"))
+        pl.dump([self.model,self.categoryDict,self.dataset,self.target], open("./model_save/model.p","wb"))
    
     def __getimage(self,path):
         # read the image using opencv
@@ -131,20 +159,20 @@ class ClassifyImages:
 # Debugging 
 if __name__ == "__main__":
     # This is for testing the training aspect
-    # t = ClassifyImages()
-    # t.createTrainingData()
-    # print(t.dataset.shape)
-    # print(t.target.shape)
-    # t.train_model()
+    t = ClassifyImages()
+    t.createTrainingData()
+    print(t.dataset.shape)
+    print(t.target.shape)
+    t.train_model()
 
-    # img = cv2.imread("./images/book_00004.jpg")
-    # print("classification: ",t.classify_img(img))
+    img = cv2.imread("./images/book_00004.jpg")
+    print("classification: ",t.classify_img(img))
 
     
     # This can be used to load old model
     t2 = ClassifyImages(load_model=True)
 
     # This is for testing the model
-    img = cv2.imread("./images/cup_00104.jpg")
+    img = cv2.imread("./images/box_00024.jpg")
     print("classification: ", t2.classify_img(img))
     
