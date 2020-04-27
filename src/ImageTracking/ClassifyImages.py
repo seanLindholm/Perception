@@ -7,6 +7,7 @@ import pandas as pd
 import pickle as pl
 import numpy as np
 import sklearn as sk
+import matplotlib.pyplot as plt
 import threading
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
@@ -15,6 +16,8 @@ from sklearn.svm import LinearSVC
 import logging
 import time
 import cv2
+from skimage.feature import hog
+from skimage import data, exposure
 
 
 
@@ -147,7 +150,9 @@ class ClassifyImages:
         # biggest problem is distinguishing boxes from book.
         # One feature idea might be to add edge detection, to try and find 
         # text on the front page of the books.
-        more_features = []
+        fd, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
+                    cells_per_block=(1, 1), visualize=True, multichannel=True)
+        more_features = hog_image.flatten()
         # horizontal stack them
         features = np.hstack((flatten,more_features))
 
@@ -165,14 +170,13 @@ if __name__ == "__main__":
     print(t.target.shape)
     t.train_model()
 
-    img = cv2.imread("./images/book_00004.jpg")
-    print("classification: ",t.classify_img(img))
+    #img = cv2.imread("./images/book_00004.jpg")
+    #print("classification: ",t.classify_img(img))
 
     
     # This can be used to load old model
-    t2 = ClassifyImages(load_model=True)
+    #t2 = ClassifyImages(load_model=True)
 
     # This is for testing the model
-    img = cv2.imread("./images/box_00024.jpg")
-    print("classification: ", t2.classify_img(img))
-    
+    image = cv2.imread("./images/box_00024.jpg")
+    #print("classification: ", t2.classify_img(img))
