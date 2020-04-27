@@ -17,7 +17,6 @@ import logging
 import time
 import cv2
 from skimage.feature import hog
-from skimage import data, exposure
 
 
 
