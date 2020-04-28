@@ -7,6 +7,7 @@ import pandas as pd
 import pickle as pl
 import numpy as np
 import sklearn as sk
+import sys
 import matplotlib.pyplot as plt
 import threading
 from sklearn import datasets
@@ -17,16 +18,18 @@ import logging
 import time
 import cv2
 from skimage.feature import hog
+from sklearn.decomposition import PCA
 
 
-
+resize_ = 500
 class ClassifyImages:
 
-    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model = False):
+    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model=False):
         if load_model:
             self.__loadPretrainedModel()
         self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
         self.__numberOfThreads = num_of_threads
+        self.pca = PCA(.98)
 
     def startAndExecuteThreadWork(self,thread_list):
         for t in thread_list:
@@ -98,9 +101,10 @@ class ClassifyImages:
             return "ImageIsOfWrongType"
         img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
 
-        # resize the image to 80 x 80
-        img = cv2.resize(img,(80,80))
+        # resize the image to resize variable
+        img = cv2.resize(img,(resize_,resize_))
         test = self.__makefeatures(img).reshape(1,-1)
+        test = self.pca.transform(test)
         classification = self.categoryDict[self.model.predict(test)[0]]
         return classification
 
@@ -108,7 +112,7 @@ class ClassifyImages:
     def __loadPretrainedModel(self):
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
-        self.model,self.categoryDict,self.dataset,self.target = pl.load(open("./model_save/model.p","rb"))
+        self.model,self.categoryDict,self.pca = pl.load(open("./model_save/model.p","rb"))
         pass
 
     def train_model(self,split=.3): 
@@ -116,6 +120,10 @@ class ClassifyImages:
         # Next we would like to save the model, such that we don't have to retrain everytime we 
         # Need to access the model.
         X_train,X_test,y_train,y_test = train_test_split(self.dataset,self.target,test_size=split)
+        self.pca.fit(X_train)
+        X_train = self.pca.transform(X_train)
+        X_test = self.pca.transform(X_test)
+
         self.model = sk.svm.SVC(kernel='rbf',gamma='scale',C=1)
         self.model.fit(X_train,y_train)
         y_pred = self.model.predict(X_test)
@@ -123,7 +131,7 @@ class ClassifyImages:
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
 
         # Save the model
-        pl.dump([self.model,self.categoryDict,self.dataset,self.target], open("./model_save/model.p","wb"))
+        pl.dump([self.model,self.categoryDict,self.pca], open("./model_save/model.p","wb"))
    
     def __getimage(self,path):
         # read the image using opencv
@@ -133,8 +141,8 @@ class ClassifyImages:
         else:
             # convert into grayscal <- (might be discussed if we want to preserve the colors or not)
             gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            # resize the image to 80 x 80
-            return cv2.resize(gray,(80,80)), 1
+            # resize the image to resize variable
+            return cv2.resize(gray,(resize_,resize_)), 1
     
     def __makefeatures(self,img):
         # This method takes the image, and flattens it. 
@@ -149,8 +157,8 @@ class ClassifyImages:
         # biggest problem is distinguishing boxes from book.
         # One feature idea might be to add edge detection, to try and find 
         # text on the front page of the books.
-        fd, hog_image = hog(image, orientations=8, pixels_per_cell=(16, 16),
-                    cells_per_block=(1, 1), visualize=True, multichannel=True)
+        fd, hog_image = hog(img, orientations=8, pixels_per_cell=(16, 16),
+                    cells_per_block=(1, 1), visualize=True, multichannel=False)
         more_features = hog_image.flatten()
         # horizontal stack them
         features = np.hstack((flatten,more_features))
@@ -164,9 +172,12 @@ class ClassifyImages:
 if __name__ == "__main__":
     # This is for testing the training aspect
     t = ClassifyImages()
+    print("Creating training data with images being {0}x{0}. This can take some time".format(resize_))
+    sys.stdout.flush()
     t.createTrainingData()
     print(t.dataset.shape)
     print(t.target.shape)
+    print("Begining trainig of model")
     t.train_model()
 
     #img = cv2.imread("./images/book_00004.jpg")
