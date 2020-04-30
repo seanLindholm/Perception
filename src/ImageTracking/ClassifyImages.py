@@ -21,15 +21,16 @@ from skimage.feature import hog
 from sklearn.decomposition import PCA
 
 
-resize_ = 500
+resize_ = 200
 class ClassifyImages:
 
-    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model=False):
+    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model=False,load_path="./model_save"):
         if load_model:
-            self.__loadPretrainedModel()
-        self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
-        self.__numberOfThreads = num_of_threads
-        self.pca = PCA(.98)
+            self.__loadPretrainedModel(load_path)
+        else:
+            self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
+            self.__numberOfThreads = num_of_threads
+            self.pca = PCA(.98)
 
     def startAndExecuteThreadWork(self,thread_list):
         for t in thread_list:
@@ -89,7 +90,7 @@ class ClassifyImages:
                 self.target.append(label)
                 self.categoryname.append(cat)
 
-    def classify_img(self,input_img):
+    def classify_img(self,input_img,GaryTheImage=True):
         # This method takes an image as input and return the predicted class.
         # This should be used in conjunction with the object tracking to identify
         # What object is on the track.
@@ -99,28 +100,36 @@ class ClassifyImages:
             print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
                   "and input that, in its original version")
             return "ImageIsOfWrongType"
-        img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
-
+        if GaryTheImage:
+            input_img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
         # resize the image to resize variable
-        img = cv2.resize(img,(resize_,resize_))
+        img = cv2.resize(input_img,(resize_,resize_))
         test = self.__makefeatures(img).reshape(1,-1)
         test = self.pca.transform(test)
         classification = self.categoryDict[self.model.predict(test)[0]]
         return classification
 
 
-    def __loadPretrainedModel(self):
+    def __loadPretrainedModel(self,load_path):
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
-        self.model,self.categoryDict,self.pca = pl.load(open("./model_save/model.p","rb"))
-        pass
+        self.model = pl.load(open(load_path + "/model.p","rb"))[0]
+        self.categoryDict = pl.load(open(load_path + "/category.p","rb"))[0]
+        self.pca = pl.load(open(load_path + "/pca.p","rb"))[0]
+
+    def __saveModels(self):
+        # This method load a saved model, and is ment to be used when you don't want to 
+        # retrain the model. 
+        pl.dump([self.model],open("./model_save/model.p","wb"))
+        pl.dump([self.categoryDict],open("./model_save/category.p","wb"))
+        pl.dump([self.pca],open("./model_save/pca.p","wb"))
 
     def train_model(self,split=.3): 
         # Here we train the model, with our training data.
         # Next we would like to save the model, such that we don't have to retrain everytime we 
         # Need to access the model.
         X_train,X_test,y_train,y_test = train_test_split(self.dataset,self.target,test_size=split)
-        self.pca.fit(X_train)
+        self.pca = self.pca.fit(X_train)
         X_train = self.pca.transform(X_train)
         X_test = self.pca.transform(X_test)
 
@@ -130,9 +139,9 @@ class ClassifyImages:
         print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
 
-        # Save the model
-        pl.dump([self.model,self.categoryDict,self.pca], open("./model_save/model.p","wb"))
-   
+        #Save the model
+        self.__saveModels()
+       
     def __getimage(self,path):
         # read the image using opencv
         img = cv2.imread(path)
@@ -168,16 +177,23 @@ class ClassifyImages:
 
         return features
 
-# Debugging 
+
+
 if __name__ == "__main__":
     # This is for testing the training aspect
     t = ClassifyImages()
     print("Creating training data with images being {0}x{0}. This can take some time".format(resize_))
     sys.stdout.flush()
     t.createTrainingData()
+    sys.stdout.flush()
+
     print(t.dataset.shape)
     print(t.target.shape)
+    sys.stdout.flush()
+
     print("Begining trainig of model")
+    sys.stdout.flush()
+
     t.train_model()
 
     #img = cv2.imread("./images/book_00004.jpg")
@@ -185,8 +201,16 @@ if __name__ == "__main__":
 
     
     # This can be used to load old model
-    #t2 = ClassifyImages(load_model=True)
+    t2 = ClassifyImages(load_model=True)
 
     # This is for testing the model
-    image = cv2.imread("./images/box_00024.jpg")
-    #print("classification: ", t2.classify_img(img))
+    img = cv2.imread("./images/book_01004.jpg")
+    print("classification: ", t2.classify_img(img,True))
+
+    # This is for testing the model
+    img = cv2.imread("./images/box_01055.jpg")
+    print("classification: ", t2.classify_img(img,True))
+
+    # This is for testing the model
+    img = cv2.imread("./images/cup_01090.jpg")
+    print("classification: ", t2.classify_img(img,True))

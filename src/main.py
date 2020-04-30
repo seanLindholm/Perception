@@ -4,19 +4,18 @@ import cv2
 import numpy as np
 import os
 import time
+import sys 
 
-background = cv2.imread("Video\\NoOcclusions\\left\\1585434282_261431932_Left.png")
+background = cv2.imread("C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\left\\1585434282_261431932_Left.png")
 background = background[250:,300:1200,:]
 
-test_img = cv2.imread("Video\\NoOcclusions\\left\\1585434312_429121971_Left.png")
-test_img = test_img[250:,300:1200,:]
 
 
 def runVideoStreamNoOcculison():
     # Get the number of images in the left folder (The Video)
     # There is the same number of images in both left and right folder.
-    path_left = "C:\Users\swang\Desktop\Video\NoOcclusions\left"
-    path_right = "C:\Users\swang\Desktop\Video\NoOcclusions\\right"
+    path_left = "C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\left"
+    path_right = "C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\right"
     
     left_pics = [f for f in os.listdir(path_left)]
     right_pics = [f for f in os.listdir(path_right)]
@@ -37,8 +36,8 @@ def runVideoStreamNoOcculison():
 def runVideoStreamWithOccultions():
      # Get the number of images in the left folder (The Video)
     # There is the same number of images in both left and right folder.
-    path_left = "C:\Users\swang\Desktop\Video\Occlusions\left"
-    path_right = "C:\Users\swang\Desktop\Video\Occlusions\\right"
+    path_left = "C:\\Users\swang\Desktop\Video\Occlusions\left"
+    path_right = "C:\\Users\swang\Desktop\Video\Occlusions\\right"
     
     left_pics = [f for f in os.listdir(path_left)]
     right_pics = [f for f in os.listdir(path_right)]
@@ -55,21 +54,31 @@ def runVideoStreamWithOccultions():
         yield left,right
     pass
      
-def primeImgForClassification(img):
-    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-    gray2 = cv2.cvtColor(background,cv2.COLOR_BGR2GRAY)
-    gray = gray2 - gray
-    gray[gray > 200] = 0
-    gray[gray < 100] = 0
+def TestConvSeq():
+    path = "C:\\Users\\swang\\Desktop\\ConvTestImg"
+    pics = [f for f in os.listdir(path)]
+    for i in range(len(pics)):
+        img  = cv2.imread(path+"/"+pics[i])
+        yield img
+
+def primeImgForClassification(img,grayFirst=True):
+    if grayFirst:
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        gray2 = cv2.cvtColor(background,cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img.copy()
+        gray2 = background.copy()
+    
     #resize
-    return cv2.resize(gray,(500,500))
+    return cv2.resize(gray,(200,200))
 
 if __name__ == "__main__":
-    test = False
-
+    test = True
+    model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
+        
     if not test:
         
-        model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save/model.p")
+        model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
         
         video = runVideoStreamNoOcculison()
 
@@ -83,7 +92,7 @@ if __name__ == "__main__":
         for left,right in video:
             frame += 1
             classImg = left[250:,300:1200,:]
-            classImg = primeImgForClassification(classImg)
+            classImg = primeImgForClassification(classImg,True)
             class_ = model.classify_img(classImg,False)
 
             cv2.putText(left,class_ + " - " + str(frame), 
@@ -94,16 +103,29 @@ if __name__ == "__main__":
             lineType)
 
             cv2.imshow("left",left)
+            cv2.imshow("image to class",classImg)
 
             k = cv2.waitKey(1)
             if k == 27:
                 continue
             #cv2.destroyAllWindows()
     else:
-        cv2.imshow("background",background)
-        cv2.imshow("test",test_img)
-        primeImgForClassification(test_img)
-        k = cv2.waitKey(0)
-        if k == 27:
-            cv2.destroyAllWindows()
+
+        test = TestConvSeq()
+        for img in test:
+            img = primeImgForClassification(img,True)
+            class_ = model.classify_img(img,False)
+            print(class_)
+            sys.stdout.flush()
+            cv2.imshow("image",img)
+            k = cv2.waitKey(1000)
+            if k == 27:
+                cv2.destroyAllWindows()
+
+        #cv2.imshow("background",background)
+        #cv2.imshow("test",test_img)
+        #primeImgForClassification(test_img)
+        #k = cv2.waitKey(0)
+        #if k == 27:
+        #    cv2.destroyAllWindows()
          
