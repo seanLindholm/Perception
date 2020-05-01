@@ -70,7 +70,7 @@ def primeImgForClassification(img,grayFirst=True):
         gray2 = background.copy()
     
     #resize
-    return cv2.resize(gray,(200,200))
+    return cv2.resize(gray,(300,300))
 
 if __name__ == "__main__":
     test = True

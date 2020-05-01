@@ -90,58 +90,6 @@ class ClassifyImages:
                 self.target.append(label)
                 self.categoryname.append(cat)
 
-    def classify_img(self,input_img,GaryTheImage=True):
-        # This method takes an image as input and return the predicted class.
-        # This should be used in conjunction with the object tracking to identify
-        # What object is on the track.
-
-        # The input image should be a BGR image from cv2.imread in order to function
-        if type(input_img) is not np.ndarray:
-            print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
-                  "and input that, in its original version")
-            return "ImageIsOfWrongType"
-        if GaryTheImage:
-            input_img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
-        # resize the image to resize variable
-        img = cv2.resize(input_img,(resize_,resize_))
-        test = self.__makefeatures(img).reshape(1,-1)
-        test = self.pca.transform(test)
-        classification = self.categoryDict[self.model.predict(test)[0]]
-        return classification
-
-
-    def __loadPretrainedModel(self,load_path):
-        # This method load a saved model, and is ment to be used when you don't want to 
-        # retrain the model. 
-        self.model = pl.load(open(load_path + "/model.p","rb"))[0]
-        self.categoryDict = pl.load(open(load_path + "/category.p","rb"))[0]
-        self.pca = pl.load(open(load_path + "/pca.p","rb"))[0]
-
-    def __saveModels(self):
-        # This method load a saved model, and is ment to be used when you don't want to 
-        # retrain the model. 
-        pl.dump([self.model],open("./model_save/model.p","wb"))
-        pl.dump([self.categoryDict],open("./model_save/category.p","wb"))
-        pl.dump([self.pca],open("./model_save/pca.p","wb"))
-
-    def train_model(self,split=.3): 
-        # Here we train the model, with our training data.
-        # Next we would like to save the model, such that we don't have to retrain everytime we 
-        # Need to access the model.
-        X_train,X_test,y_train,y_test = train_test_split(self.dataset,self.target,test_size=split)
-        self.pca = self.pca.fit(X_train)
-        X_train = self.pca.transform(X_train)
-        X_test = self.pca.transform(X_test)
-
-        self.model = sk.svm.SVC(kernel='rbf',gamma='scale',C=1)
-        self.model.fit(X_train,y_train)
-        y_pred = self.model.predict(X_test)
-        print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
-        print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
-
-        #Save the model
-        self.__saveModels()
-       
     def __getimage(self,path):
         # read the image using opencv
         img = cv2.imread(path)
@@ -166,16 +114,75 @@ class ClassifyImages:
         # biggest problem is distinguishing boxes from book.
         # One feature idea might be to add edge detection, to try and find 
         # text on the front page of the books.
-        fd, hog_image = hog(img, orientations=8, pixels_per_cell=(16, 16),
-                    cells_per_block=(1, 1), visualize=True, multichannel=False)
-        more_features = hog_image.flatten()
+        fd, hog_image = hog(img, orientations=9, pixels_per_cell=(8, 8),
+                    cells_per_block=(2, 2), visualize=True, multichannel=False)
+        more_features = fd.flatten()
         # horizontal stack them
-        features = np.hstack((flatten,more_features))
-
-        # Use pca to reduce dimentionality
-        # TODO make this, i think it could be nice
+        features = np.hstack(([],more_features))
 
         return features
+ 
+    def train_model(self,split=.3): 
+        # Here we train the model, with our training data.
+        # Next we would like to save the model, such that we don't have to retrain everytime we 
+        # Need to access the model.
+        X_train,X_test,y_train,y_test = train_test_split(self.dataset,self.target,test_size=split,shuffle=True)
+        self.std = StandardScaler().fit(X_train)
+        X_train = self.std.transform(X_train)
+        X_test = self.std.transform(X_test)
+        
+        #PCA fitting and transforming
+        self.pca = self.pca.fit(X_train)
+        X_train = self.pca.transform(X_train)
+        X_test = self.pca.transform(X_test)
+
+        self.model = sk.svm.SVC(kernel='rbf',gamma='scale',C=1)
+        self.model.fit(X_train,y_train)
+        y_pred = self.model.predict(X_test)
+        print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
+        print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
+
+        #Save the model
+        self.__saveModels()
+       
+    def classify_img(self,input_img,GaryTheImage=True):
+        # This method takes an image as input and return the predicted class.
+        # This should be used in conjunction with the object tracking to identify
+        # What object is on the track.
+
+        # The input image should be a BGR image from cv2.imread in order to function
+        if type(input_img) is not np.ndarray:
+            print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
+                  "and input that, in its original version")
+            return "ImageIsOfWrongType"
+        if GaryTheImage:
+            input_img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
+        # resize the image to resize variable
+        img = cv2.resize(input_img,(resize_,resize_))
+        test = self.__makefeatures(img).reshape(1,-1)
+        test = self.std.transform(test)
+        test = self.pca.transform(test)
+        print(test.shape)
+        #test = self.pca.transform(test)
+        classification = self.categoryDict[self.model.predict(test)[0]]
+        return classification
+
+
+    def __loadPretrainedModel(self,load_path):
+        # This method load a saved model, and is ment to be used when you don't want to 
+        # retrain the model. 
+        self.model = pl.load(open(load_path + "/model.p","rb"))[0]
+        self.categoryDict = pl.load(open(load_path + "/category.p","rb"))[0]
+        self.pca = pl.load(open(load_path + "/pca.p","rb"))[0]
+        self.std = pl.load(open(load_path +"/standardscaler.p","rb"))[0]
+
+    def __saveModels(self):
+        # This method load a saved model, and is ment to be used when you don't want to 
+        # retrain the model. 
+        pl.dump([self.model],open("./model_save/model.p","wb"))
+        pl.dump([self.categoryDict],open("./model_save/category.p","wb"))
+        pl.dump([self.pca],open("./model_save/pca.p","wb"))
+        pl.dump([self.std],open("./model_save/standardscaler.p","wb"))
 
 
 
