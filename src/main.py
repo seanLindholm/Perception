@@ -7,7 +7,6 @@ import time
 import sys 
 
 background = cv2.imread("C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\left\\1585434282_261431932_Left.png")
-background = background[250:,300:1200,:]
 
 
 
@@ -61,24 +60,24 @@ def TestConvSeq():
         img  = cv2.imread(path+"/"+pics[i])
         yield img
 
-def primeImgForClassification(img,grayFirst=True):
-    if grayFirst:
-        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        gray2 = cv2.cvtColor(background,cv2.COLOR_BGR2GRAY)
-    else:
-        gray = img.copy()
-        gray2 = background.copy()
-    
-    #resize
-    return cv2.resize(gray,(300,300))
+def seqmentObject(img):
+    image = img.copy()
+    image = background-image
+    image[image>200] = 0
+    image[image<50] = 0
+    erode_ = np.ones((5,5),np.uint8)
+    dialte_ = np.ones((5,5),np.uint8)
+    image = cv2.erode(image,erode_)
+    image = cv2.dilate(image,dialte_)
+
+    return image
 
 if __name__ == "__main__":
-    test = True
-    model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
+    test = False
+    #model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
         
     if not test:
         
-        model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
         
         video = runVideoStreamNoOcculison()
 
@@ -89,23 +88,23 @@ if __name__ == "__main__":
         fontColor              = (255,255,255)
         lineType               = 2
         frame = 0
+        
         for left,right in video:
             frame += 1
-            classImg = left[250:,300:1200,:]
-            classImg = primeImgForClassification(classImg,True)
-            class_ = model.classify_img(classImg,False)
+            mask_object = seqmentObject(left)
+            #class_ = model.classify_img(mask_object,True)
 
-            cv2.putText(left,class_ + " - " + str(frame), 
-            bottomLeftCornerOfText, 
-            font, 
-            fontScale,
-            fontColor,
-            lineType)
+            #cv2.putText(left,class_ + " - " + str(frame), 
+            #bottomLeftCornerOfText, 
+            #font, 
+            #fontScale,
+            #fontColor,
+            #lineType)
+            cv2.imshow("leftleft",mask_object)
+           # cv2.imshow("left",left)
+           # cv2.imshow("image to class",classImg)
 
-            cv2.imshow("left",left)
-            cv2.imshow("image to class",classImg)
-
-            k = cv2.waitKey(1)
+            k = cv2.waitKey(10)
             if k == 27:
                 continue
             #cv2.destroyAllWindows()

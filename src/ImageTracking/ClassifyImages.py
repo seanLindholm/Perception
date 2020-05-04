@@ -19,7 +19,7 @@ import time
 import cv2
 from skimage.feature import hog
 from sklearn.decomposition import PCA
-from slidingWindow import *
+
 
 
 resize_ = 200

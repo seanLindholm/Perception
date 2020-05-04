@@ -1,6 +1,5 @@
 import imutils
 import cv2
-from ClassifyImages import ClassifyImages
 import time
 import sys
 import numpy as np
