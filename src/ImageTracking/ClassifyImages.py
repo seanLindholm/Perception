@@ -19,6 +19,7 @@ import time
 import cv2
 from skimage.feature import hog
 from sklearn.decomposition import PCA
+#from slidingWindow import *
 
 
 
@@ -125,7 +126,8 @@ class ClassifyImages:
             return 0,0
         else:
             # convert into grayscal <- (might be discussed if we want to preserve the colors or not)
-            gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            #gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+            gray = img.copy()
             # resize the image to resize variable
             return cv2.resize(gray,(resize_,resize_)), 1
     
@@ -140,7 +142,7 @@ class ClassifyImages:
         # One feature idea might be to add edge detection, to try and find 
         # text on the front page of the books.
         fd, hog_image = hog(img, orientations=9, pixels_per_cell=(8, 8),
-                    cells_per_block=(2, 2), visualize=True, multichannel=False)
+                    cells_per_block=(2, 2), visualize=True, multichannel=True)
         more_features = fd.flatten()
         # horizontal stack them
         features = np.hstack(([],more_features))
@@ -155,12 +157,13 @@ class ClassifyImages:
         print(X_train.shape)
         print(y_train.shape)
         print()
+        '''
         X_train = np.vstack((X_train,self.negDataset))
         y_train = np.hstack((y_train,self.negTarget))
         print(X_train.shape)
         print(y_train.shape)
         print()
-
+        '''
         self.std = StandardScaler().fit(X_train)
         X_train = self.std.transform(X_train)
         X_test = self.std.transform(X_test)
@@ -243,9 +246,7 @@ if __name__ == "__main__":
     sys.stdout.flush()
 
     t.train_model()
-    print("Done traning, starting hard negative training")
-    sys.stdout.flush()
-
+    '''
     #after first training, make hard_negative from all images in negative set:
     for path,cat,label in zip(t.negDataframe["imagepath"],t.negDataframe["category"],t.negDataframe["label"]):
            
@@ -286,9 +287,11 @@ if __name__ == "__main__":
     if boarder != []:    
         for xy,xWinyWin,_ in boarder:
             cv2.rectangle(image_cup, xy, xWinyWin, (0, 255, 0), 2)
-   
+    
     cv2.imshow("The cup",image_cup)
     cv2.waitKey(5000)
+    '''
+    t2 = ClassifyImages(load_model=True)
     # This is for testing the model
     img = cv2.imread("./images/book_01004.jpg")
     print("classification: ", t2.classify_img(img,True))

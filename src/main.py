@@ -90,7 +90,7 @@ def seqmentObject(img):
 
 if __name__ == "__main__":
     test = False
-    #model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
+    model = ClassifyImages(load_model=True,dataset = "./ImageTracking/dataset.csv", load_path="./ImageTracking/model_save")
         
     if not test:
         
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
         
         font                   = cv2.FONT_HERSHEY_SIMPLEX
-        bottomLeftCornerOfText = (10,500)
+        bottomLeftCornerOfText = (10,50)
         fontScale              = 1
         fontColor              = (255,255,255)
         lineType               = 2
@@ -111,18 +111,17 @@ if __name__ == "__main__":
             #class_ = model.classify_img(mask_object,True)
             #contours
             left = cv2.bitwise_and(left,left,mask=mask_object)
-            
             if boarder != []:
-                c_img = left[mean[0]-150:mean[0]+150,mean[1]-150:mean[1]+150,:]
+                c_img = left[mean[0]-80:mean[0]+80,mean[1]-80:mean[1]+80,:]
                 cv2.rectangle(left, boarder[0][0], boarder[0][1], (0, 255, 0), 2)
-                #c_img = clone[y:y+winH, x:x+winW,:]
+                class_,prob,_ = model.classify_img(c_img,False)              
+                cv2.putText(left,class_ + " - " + str(frame) + " prob: " + str(prob), 
+                bottomLeftCornerOfText, 
+                font, 
+                fontScale,
+                fontColor,
+                lineType)
                 cv2.imshow("Crop",c_img)
-            #cv2.putText(left,class_ + " - " + str(frame), 
-            #bottomLeftCornerOfText, 
-            #font, 
-            #fontScale,
-            #fontColor,
-            #lineType)
             cv2.imshow("left",left)
            # cv2.imshow("left",left)
            # cv2.imshow("image to class",classImg)
