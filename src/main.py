@@ -62,15 +62,31 @@ def TestConvSeq():
 
 def seqmentObject(img):
     image = img.copy()
+    #Complete removal of backgroubd
     image = background-image
     image[image>200] = 0
     image[image<50] = 0
-    erode_ = np.ones((5,5),np.uint8)
-    dialte_ = np.ones((5,5),np.uint8)
+    erode_ = np.ones((6,6),np.uint8)
+    dialte_ = np.ones((10,10),np.uint8)
     image = cv2.erode(image,erode_)
     image = cv2.dilate(image,dialte_)
-
-    return image
+    boarder = []
+    mean = []
+    #locate the object in the image
+    seq = cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+    seq = seq[250:,350:1200]
+    xy = np.where(seq> 10)
+    x = xy[0].mean() if xy[0].size > 0 else np.nan     
+    y = xy[1].mean() if xy[1].size > 0 else np.nan      
+    try:         
+        x = int(x)+250
+        y = int(y)+350
+        mean = [x,y]
+        boarder.append([(y-160,x+160), (y+160,x-160)])
+    except Exception:         
+        pass
+    
+    return cv2.cvtColor(image,cv2.COLOR_BGR2GRAY),boarder,mean
 
 if __name__ == "__main__":
     test = False
@@ -91,22 +107,26 @@ if __name__ == "__main__":
         
         for left,right in video:
             frame += 1
-            mask_object = seqmentObject(left)
+            mask_object,boarder,mean = seqmentObject(left)
             #class_ = model.classify_img(mask_object,True)
-
+            #contours
+            left = cv2.bitwise_and(left,left,mask=mask_object)
+            
+            if boarder != []:
+                c_img = left[mean[0]-150:mean[0]+150,mean[1]-150:mean[1]+150,:]
+                cv2.rectangle(left, boarder[0][0], boarder[0][1], (0, 255, 0), 2)
+                #c_img = clone[y:y+winH, x:x+winW,:]
+                cv2.imshow("Crop",c_img)
             #cv2.putText(left,class_ + " - " + str(frame), 
             #bottomLeftCornerOfText, 
             #font, 
             #fontScale,
             #fontColor,
             #lineType)
-            cv2.imshow("leftleft",mask_object)
+            cv2.imshow("left",left)
            # cv2.imshow("left",left)
            # cv2.imshow("image to class",classImg)
-
-            k = cv2.waitKey(10)
-            if k == 27:
-                continue
+            cv2.waitKey(1)
             #cv2.destroyAllWindows()
     else:
 
