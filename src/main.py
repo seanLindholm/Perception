@@ -140,9 +140,7 @@ if __name__ == "__main__":
                 elif mean[1]>1050: 
                     Count = np.ones(3)
             print(Count)
-                
-
-                    
+            
                     
 
 
