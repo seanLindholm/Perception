@@ -243,8 +243,8 @@ class ClassifyImages:
         prob1 = self.model.predict_proba(test)[0]
         classification = self.categoryDict[np.argmax(prob1)]
         sys.stdout.flush()
-        #return classification,prob1,hogs1
-        return classification,prob1[np.argmax(prob1)],hogs1
+        return classification,prob1,hogs1
+        #return classification,prob1[np.argmax(prob1)],hogs1
 
 
     def __loadPretrainedModel(self,load_path):

@@ -112,7 +112,7 @@ if __name__ == "__main__":
         lineType               = 2
         frame = 0
 
-        Count = np.zeros(3)
+        Count = np.ones(3)
         for left,right in video:
             cl = "0"
             mean = []
@@ -130,15 +130,15 @@ if __name__ == "__main__":
                     cv2.imshow("Crop",c_img)
                     cl = str(model.classify_img(c_img,False))
                     cll = model.classify_img(c_img,False)
-                    if cll[0] == "cup":
-                        Count[0] = Count[0]+cll[1]*1
-                    elif cll[0] == "box":
-                        Count[2] = Count[2]+ cll[1]*1
-                    elif cll[0] =="book":
-                        Count[1] = Count[1] + cll[1]*1
+                    #if cll[0] == "cup":
+                    Count[0] = cll[1][0]*Count[0]/(cll[1][0]*Count[0]+cll[1][1]*Count[1]+cll[1][2]*Count[2])
+                    #elif cll[0] == "box":
+                    Count[2] = cll[1][2]*Count[2]/(cll[1][0]*Count[0]+cll[1][1]*Count[1]+cll[1][2]*Count[2])
+                    #elif cll[0] =="book":
+                    Count[1] = cll[1][1]*Count[1]/(cll[1][0]*Count[0]+cll[1][1]*Count[1]+cll[1][2]*Count[2])
                     cl = model.categoryDict[np.argmax(Count)]
                 elif mean[1]>1050: 
-                    Count = np.zeros(3)
+                    Count = np.ones(3)
             print(Count)
                 
 
