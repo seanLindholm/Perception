@@ -6,7 +6,8 @@ import os
 import time
 import sys 
 
-background = cv2.imread("ImageTracking/left/1585434282_261431932_Left.png")
+background = cv2.imread("/Users/oliverbehrens/Desktop/left/1585434282_261431932_Left.png")
+cv2.imshow("background", background)
 #background = cv2.imread("ImageTracking/Stereo_conveyor_with_occlusions/left/1585434751_931764603_Left.png")
 
 
@@ -14,8 +15,8 @@ background = cv2.imread("ImageTracking/left/1585434282_261431932_Left.png")
 def runVideoStreamNoOcculison():
     # Get the number of images in the left folder (The Video)
     # There is the same number of images in both left and right folder.
-    path_left = "ImageTracking/left"
-    path_right = "ImageTracking/right"
+    path_left = "/Users/oliverbehrens/Desktop/left"
+    path_right = "/Users/oliverbehrens/Desktop/right"
     
     left_pics = sorted([f for f in os.listdir(path_left)])
     right_pics = [f for f in os.listdir(path_right)]

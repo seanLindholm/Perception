@@ -20,7 +20,11 @@ import time
 import cv2
 from skimage.feature import hog
 from sklearn.decomposition import PCA
-
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+from sklearn.metrics import classification_report
+from sklearn.model_selection import GridSearchCV
 
 
 resize_ = 200
@@ -115,34 +119,11 @@ class ClassifyImages:
                     self.__data_count += 1
                     self.categoryname.append(cat)
                     #Rotated pictures
-                    self.dataset.append(self.__makefeatures(np.rot90(img)))
-                    self.target.append(label)
-                    self.__data_count += 1
-                    self.categoryname.append(cat)
-                    
-#                    image = img[25:175, 25:175]
-#                    image = imutils.resize(image, 200)
-#                    self.dataset.append(self.__makefeatures(image))
+#                    self.dataset.append(self.__makefeatures(np.rot90(img)))
 #                    self.target.append(label)
 #                    self.__data_count += 1
 #                    self.categoryname.append(cat)
-#                    
-#                    row, col = img.shape[:2]
-#                    bottom = img[row-2:row, 0:col]
-#                    mean = cv2.mean(bottom)[0]
-#                    border = cv2.copyMakeBorder(
-#                            img,
-#                            top=25,
-#                            bottom=25,
-#                            left=25,
-#                            right=25,
-#                            borderType=cv2.BORDER_CONSTANT,
-#                            value=[mean, mean, mean]
-#                            )
-#                    self.dataset.append(self.__makefeatures(cv2.resize(border,(resize_,resize_))))
-#                    self.target.append(label)
-#                    self.__data_count += 1
-#                    self.categoryname.append(cat)
+            
                     
                 else:
                     self.negDataset.append(self.__makefeatures(img))
@@ -179,25 +160,18 @@ class ClassifyImages:
                             cells_per_block=(4,4),block_norm='L2', visualize=False, 
                             transform_sqrt=True, feature_vector=True, multichannel=True)        
         
-        
         more_features = fd
         
-        
+        #Calculating color histograms of the picture using 16 bins. 
         numPixels = np.prod(img.shape[:2])
-
-#        histogram = cv2.calcHist([img], [0], None, [16], [0, 255]) / numPixels
-#        hs = histogram.flatten()
         (b, g, r) = cv2.split(img)
         histogramR = cv2.calcHist([r], [0], None, [16], [0, 255]) / numPixels
         histogramG = cv2.calcHist([g], [0], None, [16], [0, 255]) / numPixels
         histogramB = cv2.calcHist([b], [0], None, [16], [0, 255]) / numPixels
-        #flatten = cv2.resize(img,(50,50)).flatten()
         # horizontal stack them
         features = np.hstack((more_features,histogramR.flatten()))
         features = np.hstack((features,histogramG.flatten()))
         features = np.hstack((features,histogramB.flatten()))
-        #features = np.hstack((features,flatten))
-        #features = fd
         return features
  
     def train_model(self,split=.3): 
@@ -222,11 +196,30 @@ class ClassifyImages:
         #self.pca = self.pca.fit(X_train)
         #X_train = self.pca.transform(X_train)
         #X_test = self.pca.transform(X_test)
-
+ #       param_grid = {'kernel': ('linear', 'poly'),'degree': [1, 3, 5]}
+#        svc = sk.svm.SVC(probability=True, gamma= 'auto', C=1)
+#        print(svc.get_params().keys())
+#        grid = GridSearchCV(svc, param_grid, cv=5)
+#        grid.fit(X_train, y_train)
+#        print(sorted(grid.cv_results_.keys()))
+#
+#        print(grid.best_params_)
+#        self.model = grid.best_estimator_
         self.model = sk.svm.SVC(kernel='linear',C=1,probability=True)
         self.model.fit(X_train,y_train)
+        yfit = self.model.predict(X_test)
+
         print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
+
+        mat = confusion_matrix(y_test, yfit)
+        sns.heatmap(mat.T, square=True, annot=True, fmt='d', cbar=False,
+        xticklabels=["Cup", "Book", "Box"],
+        yticklabels=["Cup", "Book", "Box"])
+        plt.xlabel('true label')
+        plt.ylabel('predicted label');
+        print(classification_report(y_test, yfit,
+        target_names=["Cup", "Book", "Box"]))
 
         #Save the model
         self.__saveModels()
@@ -245,29 +238,12 @@ class ClassifyImages:
             input_img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
         # resize the image to resize variable
         img = cv2.resize(input_img,(resize_,resize_))
-        #cv2.imshow("pik3", img)
-        #img2 = img[25:175,25:175,:]
-
         test = self.__makefeatures(img).reshape(1,-1)
-        #test2 = self.__makefeatures(img2).reshape(1,-1)
         hogs1 = test.copy()
-        #hogs2 = test2.copy()
-        #test = self.std.transform(test)
-        #test = self.pca.transform(test)
-        #test2 = self.std.transform(test2)
-        #test2 = self.pca.transform(test2)
         prob1 = self.model.predict_proba(test)[0]
-        #prob2 = self.model.predict_proba(test2)[0]
-
-        #P1 = np.argmax(prob1) 
-        #P2 = np.argmax(prob2)
-
-        #hogs = hogs1 if P1>P2 else hogs2
-        #prob = prob1 if P1>P2 else prob2
-
         classification = self.categoryDict[np.argmax(prob1)]
-
         sys.stdout.flush()
+        #return classification,prob1,hogs1
         return classification,prob1[np.argmax(prob1)],hogs1
 
 
@@ -293,10 +269,6 @@ class ClassifyImages:
         pl.dump([self.target],open("./model_save/target.p","wb"))
         pl.dump([self.negDataset],open("./model_save/negativDataSet.p","wb"))
         pl.dump([self.negTarget],open("./model_save/negativTarget.p","wb"))
-
-
-
-
 
 
 if __name__ == "__main__":
