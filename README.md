@@ -13,11 +13,12 @@ python main.py
 This repo holds the answer to the final assignment in the course 31392 (Perception for autonomous systems)
 
 # Data
-The folder Images inside src->ImageTracking holds all the training images, some are scrapped from google but most of them are taken by handheld devices in everyday setting.
-The images which is used as input are all handled inside the script (ClassifyImage) where it reads it using cv2.imread and resize it down to an 80x80 grayscale image.
+The folder Images inside src/ImageTracking/images holds all the training images, most of them are scrapped from google but some are also taken by handheld devices.
+The images which is used as input are all handled inside the script (ClassifyImage) where it reads it using cv2.imread and resize it down to an 200x200.
+The data also get some negatives in (which is mainly pictures of the empty convayor setting), this reduces the confussion a bit, when trying to classify the objects from the conveyor.
 
 # Add data
-If you wish to add data then you will need to add a line to *dataset.csv* inside src->ImageTracking, here you will need to specify the path to the image, and then the name category alongside a numerical label.
+If you wish to add data then you will need to add a line to *dataset.csv* inside src/ImageTracking, here you will need to specify the path to the image, and then the name category alongside a numerical label.
 
 # The model
 The model is a Support Vector Machine (https://en.wikipedia.org/wiki/Support-vector_machine), used from the sklearn python library.
