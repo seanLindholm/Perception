@@ -2,15 +2,15 @@ import numpy as np
 import cv2 
 # -- some debugging arguments -- #
 test = False
-showL = True
+showL = False
 showR = False
-showCrop_L = True
-showCrop_R = False  
+showCrop_L = False
+showCrop_R = False 
 
 # -- Choose to test classification and kalman on Occlusion or not -- #
-Occlusion = False
+Occlusion = True
 
- 
+
 
 
 # --- This loads the camera calibrations --- #
@@ -28,6 +28,14 @@ backgroundLNoOcclusion = path_left_No_Occlusion+"/1585434280_967102051_Left.png"
 backgroundRNoOcclusion = path_right_No_Occlusion+"/1585434280_967102051_Right.png"
 backgroundLwithOcclusion = path_left_withOcclusion+"/1585434751_268014669_Left.png"
 backgroundRwithOcclusion = path_right_withOcclusion+"/1585434751_268014669_Right.png"
+
+
+backNotRectified_NoOcL = cv2.imread(backgroundLNoOcclusion)
+backNotRectified_NoOcR = cv2.imread(backgroundRNoOcclusion)
+backNotRectified_WithOcL = cv2.imread(backgroundLwithOcclusion)
+backNotRectified_WithOcR = cv2.imread(backgroundRwithOcclusion)
+
+
 
 # ---- The font with which we will write on the video ----- #
 font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -53,6 +61,7 @@ R1 = data2['R1']
 R2 = data2['R2']
 P1 = data2['P1']
 P2 = data2['P2']
+Q = data2['Q']
 
 # --- undistord and rectify background img no occlusion --- #
 img = cv2.imread(backgroundLNoOcclusion)
@@ -82,8 +91,12 @@ categoryDict = {0:"cup",1:"book",2:"box"}
 if Occlusion:
     path_left = path_left_withOcclusion
     backgroundL = backgroundLwithOcclusion
+    backgroundL_org = backNotRectified_WithOcL
+    
     path_right = path_right_withOcclusion
     backgroundR = backgroundRwithOcclusion
+    backgroundR_org = backNotRectified_WithOcR
+
     map1x = map1x_withOc
     map2x = map2x_withOc
     map1y = map1y_withOc
@@ -91,8 +104,12 @@ if Occlusion:
 else:
     path_left = path_left_No_Occlusion
     backgroundL = backgroundLNoOcclusion
+    backgroundL_org = backNotRectified_NoOcL
+
     path_right = path_right_No_Occlusion
     backgroundR = backgroundRNoOcclusion
+    backgroundR_org = backNotRectified_NoOcR
+
     map1x = map1x_noOc
     map2x = map2x_noOc
     map1y = map1y_noOc
