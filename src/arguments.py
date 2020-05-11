@@ -4,8 +4,8 @@ import cv2
 test = False
 showL = True
 showR = False
-showLc = False
-showRc = False  
+showCrop_L = True
+showCrop_R = False  
 
 # -- Choose to test classification and kalman on Occlusion or not -- #
 Occlusion = False

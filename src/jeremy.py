@@ -108,27 +108,28 @@ def trackAndClassifyObjectInImage(img,backgroundImg,sensed,predicted,track,kalma
                     sensed = [] # reset the detector
                     predicted = [] # clear old predictions
                     kalman.reset() # reset kalman
-                    NaiveBayes = np.ones(3)
 
                 sensed.append(mean) # add current measured state to existing list                   
-
+                print(mean)
                 # extract cropped image of object and apply classificaiton algorithm
-            
-                # INDFØR OLIVERS TING HERE!!!! #
-                c_img = img[mean[0]-120:mean[0]+120,mean[1]-120:mean[1]+120,:]
+                c_img = img[mean[0]-140:mean[0]+140,mean[1]-140:mean[1]+140,:]
                 #cl = str(model.classify_img(c_img,False))
                 cll = model.classify_img(c_img,False)
-                # The likelihood of this being a cup
-                NaiveBayes[0] = cll[1][0]*NaiveBayes[0]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
-                # The likelihood of this being a box
-                NaiveBayes[2] = cll[1][2]*NaiveBayes[2]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
-                # The likelihood of this being a book
-                NaiveBayes[1] = cll[1][1]*NaiveBayes[1]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
-                class_ = model.categoryDict[np.argmax(NaiveBayes)]
-
+                if mean[1] < 1000:
+                    # The likelihood of this being a cup
+                    NaiveBayes[0] = cll[1][0]*NaiveBayes[0]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
+                    # The likelihood of this being a book
+                    NaiveBayes[1] = cll[1][1]*NaiveBayes[1]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
+                    # The likelihood of this being a box
+                    NaiveBayes[2] = cll[1][2]*NaiveBayes[2]/(cll[1][0]*NaiveBayes[0]+cll[1][1]*NaiveBayes[1]+cll[1][2]*NaiveBayes[2])
+                elif mean[1] > 1000:
+                    NaiveBayes = np.ones(3)
                 # show cropped image (of object) if desired
-                if showLc:
-                    cv2.imshow("Crop",c_img)
+                if showCrop_L:
+                    cv2.imshow("Crop left",c_img)
+                if showCrop_R:
+                    cv2.imshow("Crop right",c_img)
+                class_ = model.categoryDict[np.argmax(NaiveBayes)]
 
                 # Kalman update only when object visible/sensed
                 Z = np.array([[x],[y]])
@@ -186,10 +187,14 @@ if __name__ == "__main__":
         right = cv2.remap(right, map2x, map2y, cv2.INTER_LINEAR)
 
         sensedLs,predictedLs,track_l,objectFoundL,objectVisibleL,xPL,yPL,xSL,ySL,probLs,classL = trackAndClassifyObjectInImage(left,backgroundL,sensedLs,predictedLs,track_l,kalman_l,objectFoundL,NaiveBayesL)
+        print("left bay: ",probLs)
         probL = probLs[np.argmax(probLs)]
 
         sensedRs,predictedRs,track_r,objectFoundR,objectVisibleR,xPR,yPR,xSR,ySR,probRs,classR = trackAndClassifyObjectInImage(right,backgroundR,sensedRs,predictedRs,track_r,kalman_r,objectFoundR,NaiveBayesR)
         probR = probRs[np.argmax(probRs)]
+        print("right bay: ",probRs)
+        print()
+
         
         # vvvvvv Make a pretty images, with information vvvvv #
         # combine left and right info into single choice
