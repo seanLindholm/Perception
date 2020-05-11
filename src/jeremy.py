@@ -112,7 +112,7 @@ def trackAndClassifyObjectInImage(img,backgroundImg,sensed,predicted,track,kalma
                 sensed.append(mean) # add current measured state to existing list                   
                 print(mean)
                 # extract cropped image of object and apply classificaiton algorithm
-                c_img = img[mean[0]-140:mean[0]+140,mean[1]-140:mean[1]+140,:]
+                c_img = img[mean[0]-120:mean[0]+120,mean[1]-120:mean[1]+120,:]
                 #cl = str(model.classify_img(c_img,False))
                 cll = model.classify_img(c_img,False)
                 if mean[1] < 1000:
