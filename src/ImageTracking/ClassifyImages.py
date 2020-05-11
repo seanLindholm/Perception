@@ -7,33 +7,35 @@ import pandas as pd
 import pickle as pl
 import numpy as np
 import sklearn as sk
+import imutils
 import sys
 import matplotlib.pyplot as plt
 import threading
 from sklearn import datasets
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
 from sklearn.svm import LinearSVC
 import logging
 import time
 import cv2
 from skimage.feature import hog
-from sklearn.decomposition import PCA
-#from slidingWindow import *
-
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+from sklearn.metrics import classification_report
+from sklearn.model_selection import GridSearchCV
 
 
 resize_ = 200
 class ClassifyImages:
 
-    def __init__(self,dataset='dataset.csv',num_of_threads=4,load_model=False,load_path="./model_save"):
+    def __init__(self,dataset='dataset.csv',num_of_threads=1,load_model=False,load_path="./model_save"):
         if load_model:
             self.__loadPretrainedModel(load_path)
         else:
             self.dataframe = pd.read_csv(dataset,sep=',',encoding='utf8')
             self.negDataframe = pd.read_csv('dataset_negativ.csv',sep=',',encoding='utf8')
             self.__numberOfThreads = num_of_threads
-            self.pca = PCA(.98)
+        
         self.categoryDict = {
             0:"cup",
             1:"book",
@@ -112,12 +114,12 @@ class ClassifyImages:
                 if not negData:
                     self.dataset.append(self.__makefeatures(img))
                     self.target.append(label)
+                    self.__data_count += 1
+                    self.categoryname.append(cat)
+    
                 else:
                     self.negDataset.append(self.__makefeatures(img))
                     self.negTarget.append(label)
-
-                self.__data_count += 1
-                self.categoryname.append(cat)
 
     def __getimage(self,path):
         # read the image using opencv
@@ -125,9 +127,9 @@ class ClassifyImages:
         if img is None:
             return 0,0
         else:
-            # convert into grayscal <- (might be discussed if we want to preserve the colors or not)
+            gray = img
+        
             #gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-            gray = img.copy()
             # resize the image to resize variable
             return cv2.resize(gray,(resize_,resize_)), 1
     
@@ -137,16 +139,23 @@ class ClassifyImages:
         # The histogram of oriented gradients (HOG), Edge images and many others.
         # This can improve accuracy, but also adds to the feature space/dimentionality
         # Some other features
-        # Right now there is no extra feautres, but so far it seems like the
         # biggest problem is distinguishing boxes from book.
-        # One feature idea might be to add edge detection, to try and find 
-        # text on the front page of the books.
-        fd, hog_image = hog(img, orientations=9, pixels_per_cell=(8, 8),
-                    cells_per_block=(2, 2), visualize=True, multichannel=True)
-        more_features = fd.flatten()
+        fd = hog(img, orientations=9, pixels_per_cell=(16,16),
+                            cells_per_block=(4,4),block_norm='L2', visualize=False, 
+                            transform_sqrt=True, feature_vector=True, multichannel=True)        
+        
+        more_features = fd
+        
+        #Calculating color histograms of the picture using 16 bins. 
+        numPixels = np.prod(img.shape[:2])
+        (b, g, r) = cv2.split(img)
+        histogramR = cv2.calcHist([r], [0], None, [16], [0, 255]) / numPixels
+        histogramG = cv2.calcHist([g], [0], None, [16], [0, 255]) / numPixels
+        histogramB = cv2.calcHist([b], [0], None, [16], [0, 255]) / numPixels
         # horizontal stack them
-        features = np.hstack(([],more_features))
-
+        features = np.hstack((more_features,histogramR.flatten()))
+        features = np.hstack((features,histogramG.flatten()))
+        features = np.hstack((features,histogramB.flatten()))
         return features
  
     def train_model(self,split=.3): 
@@ -154,27 +163,14 @@ class ClassifyImages:
         # Next we would like to save the model, such that we don't have to retrain everytime we 
         # Need to access the model.
         X_train,X_test,y_train,y_test = train_test_split(self.dataset,self.target,test_size=split,shuffle=True)
-        print(X_train.shape)
-        print(y_train.shape)
-        print()
-        '''
+    
         X_train = np.vstack((X_train,self.negDataset))
         y_train = np.hstack((y_train,self.negTarget))
-        print(X_train.shape)
-        print(y_train.shape)
-        print()
-        '''
-        self.std = StandardScaler().fit(X_train)
-        X_train = self.std.transform(X_train)
-        X_test = self.std.transform(X_test)
-        
-        #PCA fitting and transforming
-        self.pca = self.pca.fit(X_train)
-        X_train = self.pca.transform(X_train)
-        X_test = self.pca.transform(X_test)
 
         self.model = sk.svm.SVC(kernel='linear',C=1,probability=True)
         self.model.fit(X_train,y_train)
+        yfit = self.model.predict(X_test)
+
         print("The training score -rbf: {:.2f}".format(self.model.score(X_train,y_train)))
         print("The test score -rbf: {:.2f}".format(self.model.score(X_test,y_test)))
 
@@ -186,31 +182,26 @@ class ClassifyImages:
         # This should be used in conjunction with the object tracking to identify
         # What object is on the track.
 
-        # The input image should be a BGR image from cv2.imread in order to function
         if type(input_img) is not np.ndarray:
             print("The input is not and numpy.ndarray, please read the image using cv2.imread," +
                   "and input that, in its original version")
             return "ImageIsOfWrongType"
+
         if GaryTheImage:
             input_img = cv2.cvtColor(input_img,cv2.COLOR_BGR2GRAY)
         # resize the image to resize variable
         img = cv2.resize(input_img,(resize_,resize_))
         test = self.__makefeatures(img).reshape(1,-1)
-        hogs = test.copy()
-        test = self.std.transform(test)
-        test = self.pca.transform(test)
-        prob = self.model.predict_proba(test)[0]
-        classification = self.categoryDict[np.argmax(prob)]
+        prob1 = self.model.predict_proba(test)[0]
+        classification = self.categoryDict[np.argmax(prob1)]
         sys.stdout.flush()
-        return classification,prob[np.argmax(prob)],hogs
+        return classification,prob1
 
 
     def __loadPretrainedModel(self,load_path):
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
         self.model = pl.load(open(load_path + "/model.p","rb"))[0]
-        self.pca = pl.load(open(load_path + "/pca.p","rb"))[0]
-        self.std = pl.load(open(load_path +"/standardscaler.p","rb"))[0]
         self.dataset = pl.load(open(load_path + "/dataset.p","rb"))[0]
         self.target = pl.load(open(load_path + "/target.p","rb"))[0]
         self.negDataset = pl.load(open(load_path + "/negativDataSet.p","rb"))[0]
@@ -221,16 +212,10 @@ class ClassifyImages:
         # This method load a saved model, and is ment to be used when you don't want to 
         # retrain the model. 
         pl.dump([self.model],open("./model_save/model.p","wb"))
-        pl.dump([self.pca],open("./model_save/pca.p","wb"))
-        pl.dump([self.std],open("./model_save/standardscaler.p","wb"))
         pl.dump([self.dataset],open("./model_save/dataset.p","wb"))
         pl.dump([self.target],open("./model_save/target.p","wb"))
         pl.dump([self.negDataset],open("./model_save/negativDataSet.p","wb"))
         pl.dump([self.negTarget],open("./model_save/negativTarget.p","wb"))
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -246,60 +231,15 @@ if __name__ == "__main__":
     sys.stdout.flush()
 
     t.train_model()
-    '''
-    #after first training, make hard_negative from all images in negative set:
-    for path,cat,label in zip(t.negDataframe["imagepath"],t.negDataframe["category"],t.negDataframe["label"]):
-           
-        image = cv2.imread(path)
-        boarder,hard_negative = findObjectWithSliding(image,t,True)
-        
-        if hard_negative != []:
-            hard_negative = np.squeeze(np.array(hard_negative),axis=1)
-            negative_label = np.array([ 3 for _ in range(hard_negative.shape[0])])
-            t.negDataset = np.vstack((t.negDataset,hard_negative))
-            t.negTarget = np.hstack((t.negTarget,negative_label))
 
-    print("Located hard negatives, retraining model")
-    sys.stdout.flush()
-    #Traing the model again, with the new set.
-    t.train_model()
-    
-    print("Testing on one image")
-    sys.stdout.flush()
-    image_cup = cv2.imread("C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\left\\1585434318_469291925_Left.png")
-    boarder,hard_negative = findObjectWithSliding(image_cup,t,False)
-    if boarder != []:    
-        for xy,xWinyWin,_ in boarder:
-            cv2.rectangle(image_cup, xy, xWinyWin, (0, 255, 0), 2)
-   
-    cv2.imshow("The cup",image_cup)
-    cv2.waitKey(20000)
-    
-    #img = cv2.imread("./images/book_00004.jpg")
-    #print("classification: ",t.classify_img(img))
-    
-    
-    # This can be used to load old model
-    t2 = ClassifyImages(load_model=True)
-    image_cup = cv2.imread("C:\\Users\\swang\\Desktop\\Video\\NoOcclusions\\left\\1585434327_197681904_Left.png")
-    boarder,hard_negative = findObjectWithSliding(image_cup,t2,False)
-    print(boarder)
-    if boarder != []:    
-        for xy,xWinyWin,_ in boarder:
-            cv2.rectangle(image_cup, xy, xWinyWin, (0, 255, 0), 2)
-    
-    cv2.imshow("The cup",image_cup)
-    cv2.waitKey(5000)
-    '''
-    t2 = ClassifyImages(load_model=True)
     # This is for testing the model
     img = cv2.imread("./images/book_01004.jpg")
-    print("classification: ", t2.classify_img(img,True))
+    print("classification: ", t.classify_img(img,False))
 
     # This is for testing the model
     img = cv2.imread("./images/box_01055.jpg")
-    print("classification: ", t2.classify_img(img,True))
+    print("classification: ", t.classify_img(img,False))
 
     # This is for testing the model
-    img = cv2.imread("./images/cup_01090.jpg")
-    print("classification: ", t2.classify_img(img,True))
+    img = cv2.imread("./images/cup_01089.jpg")
+    print("classification: ", t.classify_img(img,False))
